@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Download, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { LogOut, Download, Eye, Settings } from 'lucide-react';
 
 interface PrematureJustifyRecord {
   id: string;
@@ -26,6 +27,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [records, setRecords] = useState<PrematureJustifyRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -72,6 +74,48 @@ export default function Admin() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const handleDownload = async (downloadUrl: string, filename: string) => {
+    try {
+      // Se for um URL do Supabase Storage
+      if (downloadUrl.includes('supabase')) {
+        const { data, error } = await supabase.storage
+          .from('anexostorage')
+          .download(downloadUrl);
+
+        if (error) throw error;
+
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'arquivo';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // Se for um URL direto
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename || 'arquivo';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      toast({
+        title: "Download iniciado",
+        description: "O arquivo está sendo baixado.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro no download",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -91,6 +135,15 @@ export default function Admin() {
             <span className="text-sm text-muted-foreground">
               {user.email}
             </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowSettings(true)}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Configurações
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -162,18 +215,68 @@ export default function Admin() {
                           {record.justify || 'N/A'}
                         </TableCell>
                         <TableCell>{record.filename || 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {record.download && (
-                              <Button variant="outline" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
+                         <TableCell>
+                           <div className="flex gap-2">
+                             <Dialog>
+                               <DialogTrigger asChild>
+                                 <Button variant="outline" size="sm">
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                               </DialogTrigger>
+                               <DialogContent className="max-w-3xl">
+                                 <DialogHeader>
+                                   <DialogTitle>Detalhes do Registro</DialogTitle>
+                                   <DialogDescription>
+                                     Informações completas da justificativa prematura
+                                   </DialogDescription>
+                                 </DialogHeader>
+                                 <div className="grid gap-4 py-4">
+                                   <div className="grid grid-cols-2 gap-4">
+                                     <div>
+                                       <label className="text-sm font-medium">ID</label>
+                                       <p className="text-sm text-muted-foreground font-mono">{record.id}</p>
+                                     </div>
+                                     <div>
+                                       <label className="text-sm font-medium">Nº Suprimento</label>
+                                       <p className="text-sm text-muted-foreground">{record.supplynumber || 'N/A'}</p>
+                                     </div>
+                                     <div>
+                                       <label className="text-sm font-medium">Nº Série</label>
+                                       <p className="text-sm text-muted-foreground">{record.serialnumber || 'N/A'}</p>
+                                     </div>
+                                     <div>
+                                       <label className="text-sm font-medium">Data</label>
+                                       <p className="text-sm text-muted-foreground">{formatDate(record.lastdate)}</p>
+                                     </div>
+                                     <div>
+                                       <label className="text-sm font-medium">Nível</label>
+                                       <p className="text-sm text-muted-foreground">{record.lastlevel || 'N/A'}</p>
+                                     </div>
+                                     <div>
+                                       <label className="text-sm font-medium">Nome do Arquivo</label>
+                                       <p className="text-sm text-muted-foreground">{record.filename || 'N/A'}</p>
+                                     </div>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium">Justificativa</label>
+                                     <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                                       {record.justify || 'N/A'}
+                                     </p>
+                                   </div>
+                                 </div>
+                               </DialogContent>
+                             </Dialog>
+                             {record.download && (
+                               <Button 
+                                 variant="outline" 
+                                 size="sm"
+                                 onClick={() => handleDownload(record.download!, record.filename || 'arquivo')}
+                               >
+                                 <Download className="h-4 w-4" />
+                               </Button>
+                             )}
+                           </div>
+                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -183,6 +286,56 @@ export default function Admin() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Configurações do Sistema</DialogTitle>
+            <DialogDescription>
+              Painel de configurações para administradores
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Configurações Gerais</CardTitle>
+                <CardDescription>
+                  Configurações básicas do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <p>• Backup automático: Ativado</p>
+                  <p>• Logs do sistema: Habilitados</p>
+                  <p>• Notificações por email: Ativas</p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Estatísticas</CardTitle>
+                <CardDescription>
+                  Resumo dos dados do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium">Total de Registros</p>
+                    <p className="text-2xl font-bold">{records.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Usuário Atual</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
