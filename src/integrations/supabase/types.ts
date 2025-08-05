@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      configuracoes: {
+        Row: {
+          ambiente_banco: string | null
+          created_at: string
+          id: string
+          schema_atual: string | null
+          updated_at: string
+          webhook_aprovacao: string | null
+          webhook_callback: string | null
+          webhook_notificacao_cliente: string | null
+          webhook_reprovacao: string | null
+        }
+        Insert: {
+          ambiente_banco?: string | null
+          created_at?: string
+          id?: string
+          schema_atual?: string | null
+          updated_at?: string
+          webhook_aprovacao?: string | null
+          webhook_callback?: string | null
+          webhook_notificacao_cliente?: string | null
+          webhook_reprovacao?: string | null
+        }
+        Update: {
+          ambiente_banco?: string | null
+          created_at?: string
+          id?: string
+          schema_atual?: string | null
+          updated_at?: string
+          webhook_aprovacao?: string | null
+          webhook_callback?: string | null
+          webhook_notificacao_cliente?: string | null
+          webhook_reprovacao?: string | null
+        }
+        Relationships: []
+      }
       prematurajustify: {
         Row: {
           download: string | null
@@ -22,6 +58,7 @@ export type Database = {
           justify: string | null
           lastdate: string | null
           lastlevel: string | null
+          organizatin: string | null
           serialnumber: string | null
           supplynumber: string | null
         }
@@ -32,6 +69,7 @@ export type Database = {
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
+          organizatin?: string | null
           serialnumber?: string | null
           supplynumber?: string | null
         }
@@ -42,6 +80,7 @@ export type Database = {
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
+          organizatin?: string | null
           serialnumber?: string | null
           supplynumber?: string | null
         }
