@@ -2,15 +2,12 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Database, Settings } from 'lucide-react';
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          Sistema de Gerenciamento de Suprimentos
-        </h1>
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Techub
+Aprovação de Justificativa</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
           Plataforma completa para administração e controle de justificativas de retorno prematuro de suprimentos de impressora
         </p>
@@ -80,8 +77,6 @@ const Index = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
