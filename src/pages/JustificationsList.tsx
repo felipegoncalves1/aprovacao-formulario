@@ -55,14 +55,10 @@ export default function JustificationsList() {
         throw error;
       }
 
-      // Map data to ensure organization field exists (set null if missing)
-      const mappedData = (data || []).map(record => ({
-        ...record,
-        organization: null // Will be populated after adding organization column to DB
-      }));
-
-      setRecords(mappedData);
-      setFilteredRecords(mappedData);
+      // Use data directly from database
+      const typedData = data as unknown as PrematureJustifyRecord[];
+      setRecords(typedData || []);
+      setFilteredRecords(typedData || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar dados",
