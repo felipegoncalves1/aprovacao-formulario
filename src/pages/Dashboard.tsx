@@ -194,6 +194,11 @@ export default function Dashboard() {
                       <span className="font-medium">
                         {record.supplynumber || 'N/A'}
                       </span>
+                      {record.status && (
+                        <Badge variant="secondary" className="text-xs">
+                          {record.status}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Série: {record.serialnumber || 'N/A'}

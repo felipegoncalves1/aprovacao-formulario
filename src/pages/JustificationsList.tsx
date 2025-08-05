@@ -21,6 +21,7 @@ interface PrematureJustifyRecord {
   filename: string | null;
   download: string | null;
   organization: string | null;
+  status: string | null;
 }
 
 export default function JustificationsList() {
@@ -157,6 +158,7 @@ export default function JustificationsList() {
                     <TableHead>Nº Série</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Nível</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Organização</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -170,6 +172,13 @@ export default function JustificationsList() {
                       <TableCell>
                         {record.lastlevel ? (
                           <Badge variant="outline">{record.lastlevel}</Badge>
+                        ) : (
+                          'N/A'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {record.status ? (
+                          <Badge variant="secondary">{record.status}</Badge>
                         ) : (
                           'N/A'
                         )}
@@ -221,6 +230,10 @@ export default function JustificationsList() {
                                   <div>
                                     <label className="text-sm font-medium">Nível</label>
                                     <p className="text-sm text-muted-foreground">{record.lastlevel || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium">Status</label>
+                                    <p className="text-sm text-muted-foreground">{record.status || 'N/A'}</p>
                                   </div>
                                   <div>
                                     <label className="text-sm font-medium">Nome do Arquivo</label>
