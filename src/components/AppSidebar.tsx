@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 
 const menuItems = [
   { title: 'Dashboard', url: '/admin', icon: Home },
-  { title: 'Lista de Justificativas', url: '/admin/justificativas', icon: FileText },
+  { title: 'Painel Operacional (visualização de justificativas)', url: '/admin/justificativas', icon: FileText },
   { title: 'Configurações', url: '/admin/settings', icon: Settings },
 ];
 
