@@ -14,6 +14,7 @@ import { Eye, Download, Search, Check, X } from 'lucide-react';
 
 interface PrematureJustifyRecord {
   id: string;
+  idformulario: string | null;
   supplynumber: string | null;
   serialnumber: string | null;
   lastdate: string | null;
@@ -86,7 +87,8 @@ export default function JustificationsList() {
       const filtered = records.filter(record => 
         (record.organization?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (record.serialnumber?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (record.supplynumber?.toLowerCase().includes(searchTerm.toLowerCase()))
+        (record.supplynumber?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (record.idformulario?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredRecords(filtered);
     }
@@ -284,7 +286,7 @@ export default function JustificationsList() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Pesquisar por organização, número de série ou suprimento..."
+                placeholder="Pesquisar por ID formulário, organização, número de série ou suprimento..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -305,6 +307,7 @@ export default function JustificationsList() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>ID Formulário</TableHead>
                     <TableHead>Nº Suprimento</TableHead>
                     <TableHead>Nº Série</TableHead>
                     <TableHead>Data</TableHead>
@@ -318,6 +321,11 @@ export default function JustificationsList() {
                 <TableBody>
                   {filteredRecords.map((record) => (
                     <TableRow key={record.id}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {record.idformulario || 'FORM-0001'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{record.supplynumber || 'N/A'}</TableCell>
                       <TableCell>{record.serialnumber || 'N/A'}</TableCell>
                       <TableCell>{formatDate(record.lastdate)}</TableCell>
@@ -362,6 +370,10 @@ export default function JustificationsList() {
                               </DialogHeader>
                               <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm font-medium">ID Formulário</label>
+                                    <p className="text-sm text-muted-foreground font-mono">{record.idformulario || 'FORM-0001'}</p>
+                                  </div>
                                   <div>
                                     <label className="text-sm font-medium">ID</label>
                                     <p className="text-sm text-muted-foreground font-mono">{record.id}</p>
