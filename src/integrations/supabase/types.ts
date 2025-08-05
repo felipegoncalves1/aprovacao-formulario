@@ -52,37 +52,52 @@ export type Database = {
       }
       prematurajustify: {
         Row: {
+          analisado_por: string | null
+          dataanalise: string | null
           download: string | null
           filename: string | null
           id: string
           justify: string | null
           lastdate: string | null
           lastlevel: string | null
-          organizatin: string | null
+          motivo_reprovacao: string | null
+          organization: string | null
           serialnumber: string | null
+          status: string | null
           supplynumber: string | null
+          tipoenvio: string | null
         }
         Insert: {
+          analisado_por?: string | null
+          dataanalise?: string | null
           download?: string | null
           filename?: string | null
           id: string
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
-          organizatin?: string | null
+          motivo_reprovacao?: string | null
+          organization?: string | null
           serialnumber?: string | null
+          status?: string | null
           supplynumber?: string | null
+          tipoenvio?: string | null
         }
         Update: {
+          analisado_por?: string | null
+          dataanalise?: string | null
           download?: string | null
           filename?: string | null
           id?: string
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
-          organizatin?: string | null
+          motivo_reprovacao?: string | null
+          organization?: string | null
           serialnumber?: string | null
+          status?: string | null
           supplynumber?: string | null
+          tipoenvio?: string | null
         }
         Relationships: []
       }
