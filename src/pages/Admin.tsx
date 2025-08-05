@@ -21,13 +21,17 @@ interface PrematureJustifyRecord {
   download: string | null;
 }
 
+const ADMIN_EMAILS = ['felipe.carvalho@tecnoset.com.br'];
+
 export default function Admin() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [records, setRecords] = useState<PrematureJustifyRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
+
+  // Check if user is admin master
+  const isAdminMaster = user?.email && ADMIN_EMAILS.includes(user.email);
 
   useEffect(() => {
     if (!user) {
@@ -135,15 +139,17 @@ export default function Admin() {
             <span className="text-sm text-muted-foreground">
               {user.email}
             </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowSettings(true)}
-              className="gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Configurações
-            </Button>
+            {isAdminMaster && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/settings')}
+                className="gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Configurações
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm" 
@@ -286,56 +292,6 @@ export default function Admin() {
           </CardContent>
         </Card>
       </main>
-
-      {/* Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Configurações do Sistema</DialogTitle>
-            <DialogDescription>
-              Painel de configurações para administradores
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Configurações Gerais</CardTitle>
-                <CardDescription>
-                  Configurações básicas do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  <p>• Backup automático: Ativado</p>
-                  <p>• Logs do sistema: Habilitados</p>
-                  <p>• Notificações por email: Ativas</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Estatísticas</CardTitle>
-                <CardDescription>
-                  Resumo dos dados do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium">Total de Registros</p>
-                    <p className="text-2xl font-bold">{records.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Usuário Atual</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
