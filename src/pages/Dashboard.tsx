@@ -2,25 +2,71 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, Building, TrendingUp } from 'lucide-react';
+import { KPICards } from '@/components/dashboard/KPICards';
+import { TrendChart } from '@/components/dashboard/TrendChart';
+import { DistributionCharts } from '@/components/dashboard/DistributionCharts';
+import { RankingTables } from '@/components/dashboard/RankingTables';
 
-interface DashboardStats {
-  totalRecords: number;
-  recordsThisMonth: number;
-  organizations: number;
-  recentActivity: any[];
+interface DashboardData {
+  kpiData: {
+    totalJustifications: number;
+    last7Days: number;
+    lastMonth: number;
+    approved: number;
+    rejected: number;
+    pending: number;
+    approvalRate: number;
+    avgAnalysisTime: number;
+  };
+  trendData: Array<{
+    date: string;
+    approved: number;
+    rejected: number;
+    pending: number;
+  }>;
+  topOrganizations: Array<{
+    name: string;
+    count: number;
+  }>;
+  rejectionReasons: Array<{
+    reason: string;
+    count: number;
+  }>;
+  topApprovals: Array<{
+    name: string;
+    count: number;
+  }>;
+  topRejections: Array<{
+    name: string;
+    count: number;
+  }>;
+  fastestAnalysts: Array<{
+    name: string;
+    avgTime: number;
+    count: number;
+  }>;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalRecords: 0,
-    recordsThisMonth: 0,
-    organizations: 0,
-    recentActivity: [],
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    kpiData: {
+      totalJustifications: 0,
+      last7Days: 0,
+      lastMonth: 0,
+      approved: 0,
+      rejected: 0,
+      pending: 0,
+      approvalRate: 0,
+      avgAnalysisTime: 0,
+    },
+    trendData: [],
+    topOrganizations: [],
+    rejectionReasons: [],
+    topApprovals: [],
+    topRejections: [],
+    fastestAnalysts: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,54 +78,182 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      fetchDashboardStats();
+      fetchDashboardData();
     }
   }, [user]);
 
-  const fetchDashboardStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Total records
-      const { count: totalRecords } = await supabase
-        .from('prematurajustify')
-        .select('*', { count: 'exact', head: true });
+      // Date ranges
+      const now = new Date();
+      const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      // Records this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      // Fetch all records for analysis
+      const { data: allRecords } = await supabase
+        .from('prematurajustify')
+        .select('*');
+
+      if (!allRecords) {
+        setLoading(false);
+        return;
+      }
+
+      // KPI calculations
+      const totalJustifications = allRecords.length;
+      const last7DaysCount = allRecords.filter(record => 
+        record.lastdate && new Date(record.lastdate) >= last7Days
+      ).length;
+      const lastMonthCount = allRecords.filter(record => 
+        record.lastdate && new Date(record.lastdate) >= lastMonth
+      ).length;
+
+      const approved = allRecords.filter(record => record.status === 'approved').length;
+      const rejected = allRecords.filter(record => record.status === 'rejected').length;
+      const pending = allRecords.filter(record => !record.status || record.status === 'pending').length;
       
-      const { count: recordsThisMonth } = await supabase
-        .from('prematurajustify')
-        .select('*', { count: 'exact', head: true })
-        .gte('lastdate', startOfMonth.toISOString());
+      const approvalRate = totalJustifications > 0 ? (approved / totalJustifications) * 100 : 0;
 
-      // Unique organizations - temporarily set to 0 until organization column is available
-      const uniqueOrgs = 0;
+      // Calculate average analysis time
+      const analyzedRecords = allRecords.filter(record => 
+        record.lastdate && record.dataanalise
+      );
+      const avgAnalysisTime = analyzedRecords.length > 0 
+        ? analyzedRecords.reduce((acc, record) => {
+            const submitDate = new Date(record.lastdate);
+            const analysisDate = new Date(record.dataanalise);
+            const timeDiff = (analysisDate.getTime() - submitDate.getTime()) / (1000 * 60 * 60);
+            return acc + timeDiff;
+          }, 0) / analyzedRecords.length
+        : 0;
 
-      // Recent activity
-      const { data: recentActivity } = await supabase
-        .from('prematurajustify')
-        .select('*')
-        .order('lastdate', { ascending: false })
-        .limit(5);
+      // Trend data (last 30 days)
+      const trendData = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const dayRecords = allRecords.filter(record => {
+          if (!record.lastdate) return false;
+          const recordDate = new Date(record.lastdate).toISOString().split('T')[0];
+          return recordDate === dateStr;
+        });
 
-      setStats({
-        totalRecords: totalRecords || 0,
-        recordsThisMonth: recordsThisMonth || 0,
-        organizations: uniqueOrgs,
-        recentActivity: recentActivity || [],
+        trendData.push({
+          date: dateStr,
+          approved: dayRecords.filter(r => r.status === 'approved').length,
+          rejected: dayRecords.filter(r => r.status === 'rejected').length,
+          pending: dayRecords.filter(r => !r.status || r.status === 'pending').length,
+        });
+      }
+
+      // Top organizations
+      const orgCounts = allRecords.reduce((acc, record) => {
+        const org = record.organization || 'Não informado';
+        acc[org] = (acc[org] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const topOrganizations = Object.entries(orgCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+
+      // Rejection reasons
+      const rejectionCounts = allRecords
+        .filter(record => record.status === 'rejected' && record.motivo_reprovacao)
+        .reduce((acc, record) => {
+          const reason = record.motivo_reprovacao || 'Não especificado';
+          acc[reason] = (acc[reason] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+      const rejectionReasons = Object.entries(rejectionCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([reason, count]) => ({ reason, count }));
+
+      // Top approvals by organization
+      const approvalsByOrg = allRecords
+        .filter(record => record.status === 'approved')
+        .reduce((acc, record) => {
+          const org = record.organization || 'Não informado';
+          acc[org] = (acc[org] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+      const topApprovals = Object.entries(approvalsByOrg)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+
+      // Top rejections by organization
+      const rejectionsByOrg = allRecords
+        .filter(record => record.status === 'rejected')
+        .reduce((acc, record) => {
+          const org = record.organization || 'Não informado';
+          acc[org] = (acc[org] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+      const topRejections = Object.entries(rejectionsByOrg)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+
+      // Fastest analysts
+      const analystTimes = allRecords
+        .filter(record => record.analisado_por && record.lastdate && record.dataanalise)
+        .reduce((acc, record) => {
+          const analyst = record.analisado_por!;
+          const submitDate = new Date(record.lastdate!);
+          const analysisDate = new Date(record.dataanalise!);
+          const timeDiff = (analysisDate.getTime() - submitDate.getTime()) / (1000 * 60 * 60);
+          
+          if (!acc[analyst]) {
+            acc[analyst] = { totalTime: 0, count: 0 };
+          }
+          acc[analyst].totalTime += timeDiff;
+          acc[analyst].count += 1;
+          return acc;
+        }, {} as Record<string, { totalTime: number; count: number }>);
+
+      const fastestAnalysts = Object.entries(analystTimes)
+        .map(([name, data]) => ({
+          name,
+          avgTime: data.totalTime / data.count,
+          count: data.count,
+        }))
+        .filter(analyst => analyst.count >= 2) // Only analysts with at least 2 analyses
+        .sort((a, b) => a.avgTime - b.avgTime)
+        .slice(0, 5);
+
+      setDashboardData({
+        kpiData: {
+          totalJustifications,
+          last7Days: last7DaysCount,
+          lastMonth: lastMonthCount,
+          approved,
+          rejected,
+          pending,
+          approvalRate,
+          avgAnalysisTime,
+        },
+        trendData,
+        topOrganizations,
+        rejectionReasons,
+        topApprovals,
+        topRejections,
+        fastestAnalysts,
       });
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
 
   if (!user) {
     return null;
@@ -94,130 +268,26 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Registros
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? '...' : stats.totalRecords}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Justificativas registradas
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI Cards */}
+      <KPICards data={dashboardData.kpiData} loading={loading} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Este Mês
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? '...' : stats.recordsThisMonth}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Novos registros
-            </p>
-          </CardContent>
-        </Card>
+      {/* Trend Chart */}
+      <TrendChart data={dashboardData.trendData} loading={loading} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Organizações
-            </CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? '...' : stats.organizations}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Empresas ativas
-            </p>
-          </CardContent>
-        </Card>
+      {/* Distribution Charts */}
+      <DistributionCharts 
+        topOrganizations={dashboardData.topOrganizations}
+        rejectionReasons={dashboardData.rejectionReasons}
+        loading={loading}
+      />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Crescimento
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? '...' : `+${Math.round((stats.recordsThisMonth / Math.max(stats.totalRecords - stats.recordsThisMonth, 1)) * 100)}%`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Vs. período anterior
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Atividade Recente</CardTitle>
-          <CardDescription>
-            Últimas justificativas registradas no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-4 text-muted-foreground">
-              Carregando atividades...
-            </div>
-          ) : stats.recentActivity.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
-              Nenhuma atividade recente
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {stats.recentActivity.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {record.supplynumber || 'N/A'}
-                      </span>
-                      {record.status && (
-                        <Badge variant="secondary" className="text-xs">
-                          {record.status}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Série: {record.serialnumber || 'N/A'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {formatDate(record.lastdate)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {record.lastlevel || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Ranking Tables */}
+      <RankingTables 
+        topApprovals={dashboardData.topApprovals}
+        topRejections={dashboardData.topRejections}
+        fastestAnalysts={dashboardData.fastestAnalysts}
+        loading={loading}
+      />
     </div>
   );
 }
