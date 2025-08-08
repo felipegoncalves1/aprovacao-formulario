@@ -17,14 +17,14 @@ interface AnalystData {
 interface RankingTablesProps {
   topApprovals: RankingData[];
   topRejections: RankingData[];
-  fastestAnalysts: AnalystData[];
+  fastestAnalysts?: AnalystData[];
   loading: boolean;
 }
 
-export function RankingTables({ topApprovals, topRejections, fastestAnalysts, loading }: RankingTablesProps) {
+export function RankingTables({ topApprovals, topRejections, loading }: RankingTablesProps) {
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Top 5 Aprovações</CardTitle>
@@ -49,23 +49,12 @@ export function RankingTables({ topApprovals, topRejections, fastestAnalysts, lo
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Analistas Mais Rápidos</CardTitle>
-            <CardDescription>Menor tempo médio de análise</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-4 text-muted-foreground">
-              Carregando...
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Top 5 Aprovações</CardTitle>
@@ -148,51 +137,6 @@ export function RankingTables({ topApprovals, topRejections, fastestAnalysts, lo
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Analistas Mais Rápidos</CardTitle>
-          <CardDescription>Menor tempo médio de análise</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Posição</TableHead>
-                <TableHead>Analista</TableHead>
-                <TableHead className="text-right">Tempo Médio</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fastestAnalysts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    Nenhum dado disponível
-                  </TableCell>
-                </TableRow>
-              ) : (
-                fastestAnalysts.map((analyst, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      <Badge variant={index === 0 ? "default" : "secondary"}>
-                        {index + 1}º
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {analyst.name || 'Não informado'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {analyst.avgTime.toFixed(1)}h
-                      <div className="text-xs text-muted-foreground">
-                        {analyst.count} análises
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -285,7 +285,6 @@ export default function Dashboard() {
       <RankingTables 
         topApprovals={dashboardData.topApprovals}
         topRejections={dashboardData.topRejections}
-        fastestAnalysts={dashboardData.fastestAnalysts}
         loading={loading}
       />
     </div>

@@ -72,9 +72,9 @@ export function DistributionCharts({ topOrganizations, rejectionReasons, loading
           <CardDescription>Organizações com mais justificativas</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px]">
+          <ChartContainer config={chartConfig} className="h-[300px] overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topOrganizations} layout="horizontal">
+              <BarChart data={topOrganizations} layout="horizontal" margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tick={{ fontSize: 12 }} />
                 <YAxis 
@@ -100,7 +100,7 @@ export function DistributionCharts({ topOrganizations, rejectionReasons, loading
           <CardDescription>Distribuição por motivo de recusa</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px]">
+          <ChartContainer config={chartConfig} className="h-[300px] overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
