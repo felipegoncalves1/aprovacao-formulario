@@ -132,6 +132,26 @@ export default function JustificationsList() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  // Exibe data e hora completas no formato dd/MM/yyyy HH:mm
+  // Sem conversão de fuso horário: extrai diretamente da string ISO
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    const s = String(dateString);
+    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))/);
+    if (match) {
+      const [, y, mo, d, h = '00', mi = '00'] = match;
+      return `${d}/${mo}/${y} ${h}:${mi}`;
+    }
+    // Fallback para valores não ISO: tenta Date apenas para não quebrar
+    const dObj = new Date(s);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const y = dObj.getFullYear();
+    const mo = pad(dObj.getMonth() + 1);
+    const d = pad(dObj.getDate());
+    const h = pad(dObj.getHours());
+    const mi = pad(dObj.getMinutes());
+    return `${d}/${mo}/${y} ${h}:${mi}`;
+  };
   const handleDownload = (downloadUrl: string) => {
     window.open(downloadUrl, '_blank');
     
@@ -364,14 +384,14 @@ export default function JustificationsList() {
               {searchTerm ? 'Nenhum registro encontrado para a pesquisa' : 'Nenhum registro encontrado'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto text-[0.7rem] leading-5">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID Formulário</TableHead>
                     <TableHead>Nº Suprimento</TableHead>
                     <TableHead>Nº Série</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Última Leitura</TableHead>
                     <TableHead>Nível</TableHead>
                     <TableHead>Tipo Envio</TableHead>
                     <TableHead>Status</TableHead>
@@ -389,7 +409,7 @@ export default function JustificationsList() {
                       </TableCell>
                       <TableCell>{record.supplynumber || 'N/A'}</TableCell>
                       <TableCell>{record.serialnumber || 'N/A'}</TableCell>
-                      <TableCell>{formatDate(record.lastdate)}</TableCell>
+                      <TableCell>{formatDateTime(record.lastdate)}</TableCell>
                       <TableCell>
                         {record.lastlevel ? (
                           <Badge variant="outline">{record.lastlevel}</Badge>
