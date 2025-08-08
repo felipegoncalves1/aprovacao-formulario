@@ -53,10 +53,12 @@ export type Database = {
       prematurajustify: {
         Row: {
           analisado_por: string | null
+          cod_projeto: string | null
           dataanalise: string | null
           download: string | null
           filename: string | null
           id: string
+          idformulario: string | null
           justify: string | null
           lastdate: string | null
           lastlevel: string | null
@@ -69,10 +71,12 @@ export type Database = {
         }
         Insert: {
           analisado_por?: string | null
+          cod_projeto?: string | null
           dataanalise?: string | null
           download?: string | null
           filename?: string | null
           id: string
+          idformulario?: string | null
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
@@ -85,10 +89,12 @@ export type Database = {
         }
         Update: {
           analisado_por?: string | null
+          cod_projeto?: string | null
           dataanalise?: string | null
           download?: string | null
           filename?: string | null
           id?: string
+          idformulario?: string | null
           justify?: string | null
           lastdate?: string | null
           lastlevel?: string | null
