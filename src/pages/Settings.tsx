@@ -1,5 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Save, Check, AlertTriangle, Database, Users, Webhook } from 'lucide-react';
 
 interface ConfiguracaoData {
@@ -27,10 +28,17 @@ const ADMIN_EMAILS = ['felipe.carvalho@tecnoset.com.br'];
 export default function Settings() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [config, setConfig] = useState<ConfiguracaoData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
+const { toast } = useToast();
+const [config, setConfig] = useState<ConfiguracaoData | null>(null);
+const [loading, setLoading] = useState(true);
+const [saving, setSaving] = useState<string | null>(null);
+const [searchParams, setSearchParams] = useSearchParams();
+const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') || 'integracoes');
+
+// Users management state
+interface ProfileUser { id: string; first_name: string | null; last_name: string | null; email: string; is_active: boolean | null }
+const [usersList, setUsersList] = useState<ProfileUser[]>([]);
+const [rolesMap, setRolesMap] = useState<Record<string, string[]>>({});
 
   // Check if user is admin master
   const isAdminMaster = user?.email && ADMIN_EMAILS.includes(user.email);
@@ -47,6 +55,7 @@ export default function Settings() {
     }
 
     fetchConfig();
+    fetchUsers();
   }, [user, navigate, isAdminMaster]);
 
   const fetchConfig = async () => {
@@ -72,33 +81,64 @@ export default function Settings() {
     }
   };
 
-  const updateConfig = async (field: string, value: string) => {
-    if (!config) return;
+const fetchUsers = async () => {
+  try {
+    const { data: profiles, error: pError } = await (supabase as any)
+      .from('profiles')
+      .select('id, first_name, last_name, email, is_active')
+      .order('created_at', { ascending: false });
 
-    setSaving(field);
-    try {
-      const { error } = await supabase
-        .from('configuracoes')
-        .update({ [field]: value })
-        .eq('id', config.id);
+    if (pError) throw pError;
 
-      if (error) throw error;
+    const { data: roles, error: rError } = await (supabase as any)
+      .from('user_roles')
+      .select('user_id, role');
 
-      setConfig({ ...config, [field]: value });
-      toast({
-        title: "Configuração salva",
-        description: `${field.replace('_', ' ')} atualizado com sucesso.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(null);
-    }
-  };
+    if (rError) throw rError;
+
+    const map: Record<string, string[]> = {};
+    (roles || []).forEach((r: any) => {
+      map[r.user_id] = map[r.user_id] ? [...map[r.user_id], r.role] : [r.role];
+    });
+
+    setUsersList(profiles || []);
+    setRolesMap(map);
+  } catch (error: any) {
+    toast({
+      title: 'Erro ao carregar usuários',
+      description: error.message,
+      variant: 'destructive',
+    });
+  }
+};
+
+const updateConfig = async (field: string, value: string) => {
+  if (!config) return;
+
+  setSaving(field);
+  try {
+    const { error } = await supabase
+      .from('configuracoes')
+      .update({ [field]: value })
+      .eq('id', config.id);
+
+    if (error) throw error;
+
+    setConfig({ ...config, [field]: value });
+    toast({
+      title: "Configuração salva",
+      description: `${field.replace('_', ' ')} atualizado com sucesso.`,
+    });
+  } catch (error: any) {
+    toast({
+      title: "Erro ao salvar",
+      description: error.message,
+      variant: "destructive",
+    });
+  } finally {
+    setSaving(null);
+  }
+};
 
   const validateConnection = async () => {
     toast({
@@ -154,21 +194,7 @@ export default function Settings() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="integracoes" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="integracoes" className="gap-2">
-              <Webhook className="h-4 w-4" />
-              Integrações
-            </TabsTrigger>
-            <TabsTrigger value="banco" className="gap-2">
-              <Database className="h-4 w-4" />
-              Parâmetros do Banco
-            </TabsTrigger>
-            <TabsTrigger value="usuarios" className="gap-2">
-              <Users className="h-4 w-4" />
-              Gerenciamento de Usuários
-            </TabsTrigger>
-          </TabsList>
+<Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearchParams({ tab: v }); }} className="space-y-6">
 
           {/* Aba Integrações */}
           <TabsContent value="integracoes">

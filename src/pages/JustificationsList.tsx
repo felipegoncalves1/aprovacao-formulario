@@ -187,7 +187,7 @@ export default function JustificationsList() {
         .from('configuracoes')
         .select('webhook_aprovacao, webhook_reprovacao')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (configError) {
         console.error('Error fetching webhook config:', configError);

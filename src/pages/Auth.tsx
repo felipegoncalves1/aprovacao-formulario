@@ -12,6 +12,8 @@ import { useEffect } from 'react';
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
@@ -47,35 +49,35 @@ export default function Auth() {
     setLoading(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSignUp = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const { error } = await signUp(email, password);
-    
-    if (error) {
-      if (error.message.includes('already registered')) {
-        toast({
-          title: "Usuário já existe",
-          description: "Este email já está registrado. Faça login.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro no cadastro",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+  const { error } = await signUp(email, password, firstName, lastName);
+  
+  if (error) {
+    if (error.message.includes('already registered')) {
+      toast({
+        title: "Usuário já existe",
+        description: "Este email já está registrado. Faça login.",
+        variant: "destructive",
+      });
     } else {
       toast({
-        title: "Cadastro realizado!",
-        description: "Verifique seu email para confirmar a conta.",
+        title: "Erro no cadastro",
+        description: error.message,
+        variant: "destructive",
       });
     }
-    
-    setLoading(false);
-  };
+  } else {
+    toast({
+      title: "Cadastro realizado!",
+      description: "Verifique seu email para confirmar a conta.",
+    });
+  }
+  
+  setLoading(false);
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -125,6 +127,28 @@ export default function Auth() {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-first-name">Nome</Label>
+                  <Input
+                    id="signup-first-name"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-last-name">Sobrenome</Label>
+                  <Input
+                    id="signup-last-name"
+                    type="text"
+                    placeholder="Seu sobrenome"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

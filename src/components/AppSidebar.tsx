@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Settings, FileText, LogOut } from 'lucide-react';
+import { Home, Settings, FileText, LogOut, Database, Users, Webhook } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -77,6 +77,39 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Configurações - Submenus */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Configurações</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to={'/admin/settings?tab=integracoes'} className={getNavCls}>
+                    <Webhook className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Integrações</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to={'/admin/settings?tab=banco'} className={getNavCls}>
+                    <Database className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Parâmetros do Banco</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to={'/admin/settings?tab=usuarios'} className={getNavCls}>
+                    <Users className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Gerenciamento de Usuários</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
