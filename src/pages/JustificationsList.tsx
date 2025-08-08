@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,15 @@ export default function JustificationsList() {
   const [currentRecord, setCurrentRecord] = useState<PrematureJustifyRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'pendentes' | 'todos'>('pendentes');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pendente' | 'aprovado' | 'reprovado'>('all');
+  const [orgFilter, setOrgFilter] = useState<string>('all');
+  const [tipoEnvioFilter, setTipoEnvioFilter] = useState<string>('all');
+
+  const pendingOptions = useMemo(() => {
+    const prs = records.filter(r => (r.status || '').toLowerCase() === 'pendente');
+    const orgs = Array.from(new Set(prs.map(r => r.organization).filter(Boolean))) as string[];
+    const tipos = Array.from(new Set(prs.map(r => r.tipoenvio).filter(Boolean))) as string[];
+    return { orgs, tipos };
+  }, [records]);
 
   useEffect(() => {
     if (!user) {
@@ -89,6 +98,12 @@ export default function JustificationsList() {
 
     if (activeTab === 'pendentes') {
       list = list.filter(r => (r.status || '').toLowerCase() === 'pendente');
+      if (orgFilter !== 'all') {
+        list = list.filter(r => (r.organization || '') === orgFilter);
+      }
+      if (tipoEnvioFilter !== 'all') {
+        list = list.filter(r => (r.tipoenvio || '') === tipoEnvioFilter);
+      }
     } else if (statusFilter !== 'all') {
       list = list.filter(r => (r.status || '').toLowerCase() === statusFilter);
     }
@@ -125,7 +140,7 @@ export default function JustificationsList() {
     });
 
     setFilteredRecords(list);
-  }, [records, searchTerm, statusFilter, activeTab]);
+  }, [records, searchTerm, statusFilter, activeTab, orgFilter, tipoEnvioFilter]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
