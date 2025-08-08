@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Eye, Download, Search, Check, X } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface PrematureJustifyRecord {
   id: string;
@@ -41,6 +43,8 @@ export default function JustificationsList() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<PrematureJustifyRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<'pendentes' | 'todos'>('pendentes');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pendente' | 'aprovado' | 'reprovado'>('all');
 
   useEffect(() => {
     if (!user) {
@@ -79,20 +83,49 @@ export default function JustificationsList() {
     }
   };
 
-  // Filter records based on search term
+  // Filtros combinados: abas, status e busca livre
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredRecords(records);
-    } else {
-      const filtered = records.filter(record => 
-        (record.organization?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (record.serialnumber?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (record.supplynumber?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (record.idformulario?.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredRecords(filtered);
+    let list = [...records];
+
+    if (activeTab === 'pendentes') {
+      list = list.filter(r => (r.status || '').toLowerCase() === 'pendente');
+    } else if (statusFilter !== 'all') {
+      list = list.filter(r => (r.status || '').toLowerCase() === statusFilter);
     }
-  }, [searchTerm, records]);
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter((r) => {
+        const bag = [
+          r.id,
+          r.idformulario,
+          r.supplynumber,
+          r.serialnumber,
+          r.lastlevel?.toString(),
+          r.justify,
+          r.filename,
+          r.organization,
+          r.status,
+          r.tipoenvio,
+          r.analisado_por,
+          r.motivo_reprovacao,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return bag.includes(term);
+      });
+    }
+
+    // Ordena por data mais recente
+    list.sort((a, b) => {
+      const da = a.lastdate ? new Date(a.lastdate).getTime() : 0;
+      const db = b.lastdate ? new Date(b.lastdate).getTime() : 0;
+      return db - da;
+    });
+
+    setFilteredRecords(list);
+  }, [records, searchTerm, statusFilter, activeTab]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -269,6 +302,45 @@ export default function JustificationsList() {
         </p>
       </div>
 
+      <Tabs
+        defaultValue="pendentes"
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'pendentes' | 'todos')}
+        className="mt-2"
+      >
+        <TabsList>
+          <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
+          <TabsTrigger value="todos">Todos</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {activeTab === 'todos' && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Pesquisar em qualquer campo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="aprovado">Aprovado</SelectItem>
+                <SelectItem value="reprovado">Reprovado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -282,17 +354,6 @@ export default function JustificationsList() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Pesquisar por ID formulário, organização, número de série ou suprimento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
 
           {loading ? (
             <div className="flex justify-center py-8">
