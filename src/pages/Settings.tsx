@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Save, Check, AlertTriangle, Database, Users, Webhook } from 'lucide-react';
-
+import UsersManagement, { type ProfileUser as UMProfileUser } from '@/components/settings/UsersManagement';
 interface ConfiguracaoData {
   id: string;
   webhook_aprovacao: string | null;
@@ -398,68 +398,7 @@ const updateConfig = async (field: string, value: string) => {
 
           {/* Aba Gerenciamento de Usuários */}
           <TabsContent value="usuarios">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciamento de Usuários</CardTitle>
-                <CardDescription>
-                  Controle de acesso e permissões de usuários
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-900">
-                    <AlertTriangle className="h-5 w-5 text-orange-600" />
-                    <div>
-                      <h4 className="font-medium text-orange-600">Em Desenvolvimento</h4>
-                      <p className="text-sm text-orange-600">
-                        Esta funcionalidade está sendo desenvolvida e estará disponível em breve.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">E-mails Autorizados (Admin Master)</h4>
-                    <div className="space-y-2">
-                      {ADMIN_EMAILS.map((email, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                          <span className="font-mono text-sm">{email}</span>
-                          <Badge variant="secondary">Admin Master</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Permissões por Perfil</h4>
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div>
-                          <span className="font-medium">Admin Master</span>
-                          <p className="text-sm text-muted-foreground">Acesso total ao sistema</p>
-                        </div>
-                        <Badge>Ativo</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg opacity-50">
-                        <div>
-                          <span className="font-medium">Analista</span>
-                          <p className="text-sm text-muted-foreground">Acesso limitado aos dados</p>
-                        </div>
-                        <Badge variant="outline">Em breve</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg opacity-50">
-                        <div>
-                          <span className="font-medium">Leitura</span>
-                          <p className="text-sm text-muted-foreground">Apenas visualização</p>
-                        </div>
-                        <Badge variant="outline">Em breve</Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <UsersManagement users={usersList as UMProfileUser[]} rolesMap={rolesMap} adminEmails={ADMIN_EMAILS} />
           </TabsContent>
         </Tabs>
       </main>

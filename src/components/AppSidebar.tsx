@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Home, Settings, FileText, LogOut, Database, Users, Webhook } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 const menuItems = [{
   title: 'Dashboard',
@@ -12,10 +12,6 @@ const menuItems = [{
   title: 'Painel Operacional (visualização de justificativas)',
   url: '/admin/justificativas',
   icon: FileText
-}, {
-  title: 'Configurações',
-  url: '/admin/settings',
-  icon: Settings
 }];
 export function AppSidebar() {
   const {
@@ -81,7 +77,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Configurações - Submenus */}
+        {/* Configurações - Item com Submenus */}
         <SidebarGroup>
           <SidebarGroupLabel>Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -89,26 +85,36 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to={'/admin/settings?tab=integracoes'} className={getNavCls}>
-                    <Webhook className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>Integrações</span>}
+                    <Settings className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Configurações</span>}
                   </NavLink>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to={'/admin/settings?tab=banco'} className={getNavCls}>
-                    <Database className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>Parâmetros do Banco</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to={'/admin/settings?tab=usuarios'} className={getNavCls}>
-                    <Users className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>Gerenciamento de Usuários</span>}
-                  </NavLink>
-                </SidebarMenuButton>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={isActive('/admin/settings')}>
+                      <NavLink to={'/admin/settings?tab=integracoes'}>
+                        <Webhook className="mr-2 h-4 w-4" />
+                        <span>Integrações</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <NavLink to={'/admin/settings?tab=banco'}>
+                        <Database className="mr-2 h-4 w-4" />
+                        <span>Parâmetros do Banco</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <NavLink to={'/admin/settings?tab=usuarios'}>
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Gerenciamento de Usuários</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

@@ -202,14 +202,11 @@ export default function JustificationsList() {
       }
 
       const webhookData = {
-        id: record.id,
-        supplynumber: record.supplynumber,
-        serialnumber: record.serialnumber,
-        organization: record.organization,
+        ...record,
         status: webhookType === 'aprovacao' ? 'aprovado' : 'reprovado',
-        analisado_por: user?.email,
+        analisado_por: user?.email || null,
         dataanalise: new Date().toISOString(),
-        ...(motivoReprovacao && { motivo_reprovacao: motivoReprovacao })
+        ...(motivoReprovacao ? { motivo_reprovacao: motivoReprovacao } : {}),
       };
 
       await fetch(webhookUrl, {
