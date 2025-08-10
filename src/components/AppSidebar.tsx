@@ -25,12 +25,14 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const currentSearch = location.search;
   const isActive = (path: string) => {
     if (path === '/admin') {
       return currentPath === '/admin';
     }
     return currentPath.startsWith(path);
   };
+  const isSettingsTabActive = (tab: string) => currentPath.startsWith('/admin/settings') && new URLSearchParams(currentSearch).get('tab') === tab;
   const getNavCls = ({
     isActive
   }: {
@@ -91,7 +93,7 @@ export function AppSidebar() {
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isActive('/admin/settings')}>
+                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('integracoes')}>
                       <NavLink to={'/admin/settings?tab=integracoes'}>
                         <Webhook className="mr-2 h-4 w-4" />
                         <span>Integrações</span>
@@ -99,7 +101,7 @@ export function AppSidebar() {
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild>
+                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('banco')}>
                       <NavLink to={'/admin/settings?tab=banco'}>
                         <Database className="mr-2 h-4 w-4" />
                         <span>Parâmetros do Banco</span>
@@ -107,7 +109,7 @@ export function AppSidebar() {
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild>
+                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('usuarios')}>
                       <NavLink to={'/admin/settings?tab=usuarios'}>
                         <Users className="mr-2 h-4 w-4" />
                         <span>Gerenciamento de Usuários</span>

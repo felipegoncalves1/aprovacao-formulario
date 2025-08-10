@@ -35,6 +35,12 @@ const [saving, setSaving] = useState<string | null>(null);
 const [searchParams, setSearchParams] = useSearchParams();
 const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') || 'integracoes');
 
+// Sincroniza a aba com o parâmetro ?tab da URL
+useEffect(() => {
+  const t = searchParams.get('tab') || 'integracoes';
+  setActiveTab(t);
+}, [searchParams]);
+
 // Users management state
 interface ProfileUser { id: string; first_name: string | null; last_name: string | null; email: string; is_active: boolean | null }
 const [usersList, setUsersList] = useState<ProfileUser[]>([]);

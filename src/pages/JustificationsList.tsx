@@ -335,7 +335,6 @@ export default function JustificationsList() {
       </div>
 
       <Tabs
-        defaultValue="pendentes"
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as 'pendentes' | 'todos')}
         className="mt-2"
