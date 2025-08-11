@@ -208,6 +208,7 @@ export default function JustificationsList() {
         supplynumber: record.supplynumber,
         serialnumber: record.serialnumber,
         organization: record.organization,
+        lastdate: record.lastdate, // data e hora da última leitura
         // Campos do formulário solicitados
         justify: record.justify,
         ultima_leitura_tonner: record.lastlevel, // nível do toner na última leitura
