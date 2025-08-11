@@ -1,12 +1,50 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+// Using PBKDF2 via Web Crypto; bcrypt removed (not supported in Edge runtime)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Password hashing using Web Crypto PBKDF2 (Deno-compatible, no Workers)
+const PBKDF2_ITERATIONS = 310000;
+const PBKDF2_HASH = "SHA-256";
+
+function bytesToBase64(bytes: ArrayBuffer | Uint8Array): string {
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let bin = "";
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin);
+}
+
+function generateSalt(length = 16): Uint8Array {
+  const salt = new Uint8Array(length);
+  crypto.getRandomValues(salt);
+  return salt;
+}
+
+async function hashPasswordPBKDF2(password: string): Promise<string> {
+  const enc = new TextEncoder();
+  const salt = generateSalt(16);
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: PBKDF2_HASH, salt, iterations: PBKDF2_ITERATIONS },
+    keyMaterial,
+    256
+  );
+  const hashB64 = bytesToBase64(bits);
+  const saltB64 = bytesToBase64(salt);
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${saltB64}$${hashB64}`;
+}
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -80,9 +118,9 @@ serve(async (req) => {
       );
     }
 
-    // Hash password using bcrypt
-    const salt = await bcrypt.genSalt(12);
-    const passwordHash = await bcrypt.hash(password, salt);
+    // Hash password using PBKDF2 (SHA-256)
+    const passwordHash = await hashPasswordPBKDF2(password);
+
 
     // Create profile row
     const { data: profile, error: insertErr } = await supabase
