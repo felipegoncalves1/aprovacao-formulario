@@ -96,36 +96,35 @@ serve(async (req) => {
     const firstName = parts[0] ?? null;
     const lastName = parts.length > 1 ? parts.slice(1).join(" ") : null;
 
-    // Prevent duplicate emails manually (no unique index enforced yet)
-    const { data: existing, error: checkErr } = await supabase
-      .from("profiles")
-      .select("id, email")
-      .ilike("email", emailLower)
-      .maybeSingle();
+    // Create auth user first to satisfy FK and enforce unique email
+    const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+      email: emailLower,
+      password: String(password),
+      email_confirm: true,
+      user_metadata: { first_name: firstName, last_name: lastName },
+    });
 
-    if (checkErr) {
-      console.error("Erro checando e-mail existente:", checkErr);
+    if (createErr || !created?.user?.id) {
+      console.error("Erro ao criar usuário de autenticação:", createErr);
+      const msg = createErr?.message?.toLowerCase() || "";
+      const isDup = msg.includes("already") || msg.includes("exists");
       return new Response(
-        JSON.stringify({ error: "Erro ao verificar e-mail existente" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: isDup ? "E-mail já cadastrado" : "Erro ao criar usuário de autenticação" }),
+        { status: isDup ? 409 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (existing) {
-      return new Response(
-        JSON.stringify({ error: "E-mail já cadastrado" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const authUserId = created.user.id;
 
     // Hash password using PBKDF2 (SHA-256)
     const passwordHash = await hashPasswordPBKDF2(password);
 
 
-    // Create profile row
+    // Create profile row linked to auth user
     const { data: profile, error: insertErr } = await supabase
       .from("profiles")
       .insert({
+        id: authUserId,
         email: emailLower,
         first_name: firstName,
         last_name: lastName,
@@ -137,6 +136,8 @@ serve(async (req) => {
 
     if (insertErr) {
       console.error("Erro ao inserir profile:", insertErr);
+      // Cleanup auth user to avoid orphan
+      try { await supabase.auth.admin.deleteUser(authUserId); } catch (_) {}
       return new Response(
         JSON.stringify({ error: "Erro ao criar usuário" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -146,12 +147,13 @@ serve(async (req) => {
     // Assign role
     const { error: roleErr } = await supabase
       .from("user_roles")
-      .insert({ user_id: profile.id, role });
+      .insert({ user_id: authUserId, role });
 
     if (roleErr) {
       console.error("Erro ao atribuir perfil:", roleErr);
-      // Best-effort cleanup: mark user inactive if role assignment failed
-      await supabase.from("profiles").update({ is_active: false }).eq("id", profile.id);
+      // Best-effort cleanup
+      await supabase.from("profiles").update({ is_active: false }).eq("id", authUserId);
+      try { await supabase.auth.admin.deleteUser(authUserId); } catch (_) {}
       return new Response(
         JSON.stringify({ error: "Erro ao atribuir perfil de acesso" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
