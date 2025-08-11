@@ -26,6 +26,7 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
   const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'leitura' });
   const [editForm, setEditForm] = useState<{ password: string; role: string }>({ password: '', role: 'leitura' });
   const [saving, setSaving] = useState(false);
+  const [usersSearch, setUsersSearch] = useState('');
   const [localRolesMap, setLocalRolesMap] = useState<Record<string, string[]>>(rolesMap);
   useEffect(() => {
     setLocalRolesMap(rolesMap);
@@ -162,6 +163,13 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
           </TabsList>
 
           <TabsContent value="usuarios" className="space-y-4">
+            <div className="max-w-md">
+              <Input
+                placeholder="Buscar por nome ou e-mail..."
+                value={usersSearch}
+                onChange={(e) => setUsersSearch(e.target.value)}
+              />
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -174,7 +182,14 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((u) => {
+                  {users
+                    .filter((u) => {
+                      const t = usersSearch.trim().toLowerCase();
+                      if (!t) return true;
+                      const n = getFullName(u).toLowerCase();
+                      return n.includes(t) || u.email.toLowerCase().includes(t);
+                    })
+                    .map((u) => {
                     const role = getRole(u.id, u.email);
                     return (
                       <TableRow key={u.id}>

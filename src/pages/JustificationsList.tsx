@@ -357,6 +357,20 @@ export default function JustificationsList() {
         </TabsList>
       </Tabs>
 
+      {activeTab === 'pendentes' && (
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Pesquisar formulários pendentes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      )}
+
       {activeTab === 'todos' && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
