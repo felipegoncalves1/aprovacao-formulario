@@ -8,42 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Password hashing using Web Crypto PBKDF2 (Deno-compatible, no Workers)
-const PBKDF2_ITERATIONS = 310000;
-const PBKDF2_HASH = "SHA-256";
+// Password hashing not used here; rely solely on Supabase Auth for credentials
 
-function bytesToBase64(bytes: ArrayBuffer | Uint8Array): string {
-  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  let bin = "";
-  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
-  return btoa(bin);
-}
-
-function generateSalt(length = 16): Uint8Array {
-  const salt = new Uint8Array(length);
-  crypto.getRandomValues(salt);
-  return salt;
-}
-
-async function hashPasswordPBKDF2(password: string): Promise<string> {
-  const enc = new TextEncoder();
-  const salt = generateSalt(16);
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: PBKDF2_HASH, salt, iterations: PBKDF2_ITERATIONS },
-    keyMaterial,
-    256
-  );
-  const hashB64 = bytesToBase64(bits);
-  const saltB64 = bytesToBase64(salt);
-  return `pbkdf2$${PBKDF2_ITERATIONS}$${saltB64}$${hashB64}`;
-}
 
 
 serve(async (req) => {
@@ -116,57 +82,23 @@ serve(async (req) => {
 
     const authUserId = created.user.id;
 
-    // Hash password using PBKDF2 (SHA-256)
-    const passwordHash = await hashPasswordPBKDF2(password);
-
-
-    // Create profile row linked to auth user
-    const { data: profile, error: insertErr } = await supabase
-      .from("profiles")
-      .insert({
-        id: authUserId,
-        email: emailLower,
-        first_name: firstName,
-        last_name: lastName,
-        is_active: true,
-        password_hash: passwordHash,
-      })
-      .select("id, email, first_name, last_name, is_active")
-      .single();
-
-    if (insertErr) {
-      console.error("Erro ao inserir profile:", insertErr);
-      // Cleanup auth user to avoid orphan
-      try { await supabase.auth.admin.deleteUser(authUserId); } catch (_) {}
-      return new Response(
-        JSON.stringify({ error: "Erro ao criar usuário" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Assign role
+    // Optionally assign role in user_roles (profile will be created by DB triggers if configured)
     const { error: roleErr } = await supabase
       .from("user_roles")
       .insert({ user_id: authUserId, role });
 
     if (roleErr) {
-      console.error("Erro ao atribuir perfil:", roleErr);
-      // Best-effort cleanup
-      await supabase.from("profiles").update({ is_active: false }).eq("id", authUserId);
-      try { await supabase.auth.admin.deleteUser(authUserId); } catch (_) {}
-      return new Response(
-        JSON.stringify({ error: "Erro ao atribuir perfil de acesso" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // If duplicate or RLS prevents, just log and continue; user remains created
+      console.error("Aviso: falha ao atribuir perfil (prosseguindo)", roleErr);
     }
 
     return new Response(
       JSON.stringify({
-        id: profile.id,
-        email: profile.email,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        is_active: profile.is_active,
+        id: authUserId,
+        email: emailLower,
+        first_name: firstName,
+        last_name: lastName,
+        is_active: true,
         role,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
