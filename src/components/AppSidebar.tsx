@@ -36,7 +36,7 @@ export function AppSidebar() {
     navigate('/');
   };
   // Papel do usuário atual
-  const [role, setRole] = useState<string | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -44,12 +44,17 @@ export function AppSidebar() {
       const { data, error } = await (await import('@/integrations/supabase/client')).supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (mounted && !error) setRole((data as any)?.role || null);
+        .eq('user_id', user.id);
+      if (mounted && !error && Array.isArray(data)) {
+        setRoles((data as any[]).map((r: any) => String(r.role)));
+      }
     })();
     return () => { mounted = false; };
   }, [user]);
+
+  const isSupervisor = roles.includes('supervisor');
+  const canSeeSettings = isSupervisor || roles.length === 0; // Admin Master (sem linhas) ou Supervisor
+
   return <Sidebar className={collapsed ? 'w-14' : 'w-60'} collapsible="icon">
       <SidebarContent>
         {/* User Info Section */}
@@ -88,51 +93,54 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Configurações - Item com Submenus */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Configurações</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to={'/admin/settings?tab=integracoes'} className={getNavCls}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>Configurações</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  {role !== 'supervisor' && (
+        {canSeeSettings && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Configurações</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={'/admin/settings?tab=integracoes'} className={getNavCls}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Configurações</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    {!isSupervisor && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={isSettingsTabActive('integracoes')}>
+                          <NavLink to={'/admin/settings?tab=integracoes'}>
+                            <Webhook className="mr-2 h-4 w-4" />
+                            <span>Integrações</span>
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
+                    {!isSupervisor && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={isSettingsTabActive('banco')}>
+                          <NavLink to={'/admin/settings?tab=banco'}>
+                            <Database className="mr-2 h-4 w-4" />
+                            <span>Parâmetros do Banco</span>
+                          </NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
                     <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={isSettingsTabActive('integracoes')}>
-                        <NavLink to={'/admin/settings?tab=integracoes'}>
-                          <Webhook className="mr-2 h-4 w-4" />
-                          <span>Integrações</span>
+                      <SidebarMenuSubButton asChild isActive={isSettingsTabActive('usuarios')}>
+                        <NavLink to={'/admin/settings?tab=usuarios'}>
+                          <Users className="mr-2 h-4 w-4" />
+                          <span>Gerenciamento de Usuários</span>
                         </NavLink>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
-                  )}
-                  {role !== 'supervisor' && (
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={isSettingsTabActive('banco')}>
-                        <NavLink to={'/admin/settings?tab=banco'}>
-                          <Database className="mr-2 h-4 w-4" />
-                          <span>Parâmetros do Banco</span>
-                        </NavLink>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  )}
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('usuarios')}>
-                      <NavLink to={'/admin/settings?tab=usuarios'}>
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Gerenciamento de Usuários</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
 
         {/* Sign Out Button */}
         <div className="mt-auto p-4 border-t border-sidebar-border">
