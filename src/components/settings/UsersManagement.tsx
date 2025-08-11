@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 export interface ProfileUser { id: string; first_name: string | null; last_name: string | null; email: string; is_active: boolean | null }
@@ -26,13 +26,17 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
   const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'leitura' });
   const [editForm, setEditForm] = useState<{ password: string; role: string }>({ password: '', role: 'leitura' });
   const [saving, setSaving] = useState(false);
+  const [localRolesMap, setLocalRolesMap] = useState<Record<string, string[]>>(rolesMap);
+  useEffect(() => {
+    setLocalRolesMap(rolesMap);
+  }, [rolesMap]);
   const getFullName = (u: ProfileUser) => [u.first_name, u.last_name].filter(Boolean).join(' ') || '—';
+  const roleLabel = (r: string) => ({ analista: 'Analista', leitura: 'Leitura', supervisor: 'Supervisor', admin_master: 'Admin Master' }[r] || r);
   const getRole = (id: string, email: string) => {
     if (adminEmails.includes(email)) return 'admin_master';
-    const roles = rolesMap[id] || [];
+    const roles = localRolesMap[id] || [];
     return roles[0] || 'leitura';
   };
-
   const resetForm = () => setForm({ fullName: '', email: '', password: '', role: 'leitura' });
 
   const createUser = async () => {
@@ -74,12 +78,30 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
   };
 
   const saveEdit = async (userId: string) => {
-    if (!editForm.role) { toast({ title: 'Selecione um perfil', variant: 'destructive' }); return; }
-    const { error } = await supabase.functions.invoke('update-user', { body: { userId, password: editForm.password || undefined, role: editForm.role } });
+    if (!editForm.role) {
+      toast({ title: 'Selecione um perfil', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.functions.invoke('update-user', {
+      body: { userId, password: editForm.password || undefined, role: editForm.role }
+    });
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return;
     }
+
+    // Refetch role from backend to avoid stale cache and normalize mapping
+    const { data: fresh, error: fetchErr } = await supabase
+      .from('user_roles')
+      .select('role, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const newRole = fetchErr || !fresh ? editForm.role : String(fresh.role);
+    setLocalRolesMap((prev) => ({ ...prev, [userId]: [newRole] }));
+
     toast({ title: 'Alterações salvas' });
     setOpenEditId(null);
   };
@@ -166,7 +188,7 @@ export default function UsersManagement({ users, rolesMap, adminEmails }: UsersM
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{role}</Badge>
+                          <Badge variant="secondary">{roleLabel(role)}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
