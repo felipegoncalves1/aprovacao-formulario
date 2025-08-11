@@ -170,7 +170,7 @@ const updateConfig = async (field: string, value: string) => {
     });
   };
 
-  if (!user || !isAdminMaster) {
+  if (!user) {
     return null;
   }
 
