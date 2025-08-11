@@ -17,6 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 interface PrematureJustifyRecord {
   id: string;
   idformulario: string | null;
+  cod_projeto: string | null;
   supplynumber: string | null;
   serialnumber: string | null;
   lastdate: string | null;
@@ -208,6 +209,7 @@ export default function JustificationsList() {
         supplynumber: record.supplynumber,
         serialnumber: record.serialnumber,
         organization: record.organization,
+        cod_projeto: record.cod_projeto,
         lastdate: record.lastdate, // data e hora da última leitura
         // Campos do formulário solicitados
         justify: record.justify,
