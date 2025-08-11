@@ -201,13 +201,22 @@ export default function JustificationsList() {
         return;
       }
 
+      // Monta payload explicitando os campos solicitados
       const webhookData = {
-        ...record,
+        id: record.id,
+        idformulario: record.idformulario,
+        supplynumber: record.supplynumber,
+        serialnumber: record.serialnumber,
+        organization: record.organization,
+        // Campos do formulário solicitados
+        justify: record.justify,
+        ultima_leitura_tonner: record.lastlevel, // nível do toner na última leitura
+        // Datas/Status da análise
         status: webhookType === 'aprovacao' ? 'aprovado' : 'reprovado',
         analisado_por: user?.email || null,
         dataanalise: new Date().toISOString(),
         ...(motivoReprovacao ? { motivo_reprovacao: motivoReprovacao } : {}),
-      };
+      } as const;
 
       await fetch(webhookUrl, {
         method: 'POST',
