@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { KPICards } from '@/components/dashboard/KPICards';
-import { TrendChart } from '@/components/dashboard/TrendChart';
+
 import { DistributionCharts } from '@/components/dashboard/DistributionCharts';
 import { RankingTables } from '@/components/dashboard/RankingTables';
 
@@ -109,9 +109,13 @@ export default function Dashboard() {
         record.lastdate && new Date(record.lastdate) >= lastMonth
       ).length;
 
-      const approved = allRecords.filter(record => record.status === 'approved').length;
-      const rejected = allRecords.filter(record => record.status === 'rejected').length;
-      const pending = allRecords.filter(record => !record.status || record.status === 'pending').length;
+      const getStatus = (s: string | null) => (s || '').toLowerCase();
+      const approved = allRecords.filter(r => ['approved','aprovado'].includes(getStatus(r.status))).length;
+      const rejected = allRecords.filter(r => ['rejected','reprovado'].includes(getStatus(r.status))).length;
+      const pending = allRecords.filter(r => {
+        const st = getStatus(r.status);
+        return !st || ['pending','pendente'].includes(st);
+      }).length;
       
       const approvalRate = totalJustifications > 0 ? (approved / totalJustifications) * 100 : 0;
 
@@ -142,9 +146,12 @@ export default function Dashboard() {
 
         trendData.push({
           date: dateStr,
-          approved: dayRecords.filter(r => r.status === 'approved').length,
-          rejected: dayRecords.filter(r => r.status === 'rejected').length,
-          pending: dayRecords.filter(r => !r.status || r.status === 'pending').length,
+          approved: dayRecords.filter(r => ['approved','aprovado'].includes(getStatus(r.status))).length,
+          rejected: dayRecords.filter(r => ['rejected','reprovado'].includes(getStatus(r.status))).length,
+          pending: dayRecords.filter(r => {
+            const st = getStatus(r.status);
+            return !st || ['pending','pendente'].includes(st);
+          }).length,
         });
       }
 
@@ -176,7 +183,7 @@ export default function Dashboard() {
 
       // Top approvals by organization
       const approvalsByOrg = allRecords
-        .filter(record => record.status === 'approved')
+        .filter(record => ['approved','aprovado'].includes(getStatus(record.status)))
         .reduce((acc, record) => {
           const org = record.organization || 'Não informado';
           acc[org] = (acc[org] || 0) + 1;
@@ -190,7 +197,7 @@ export default function Dashboard() {
 
       // Top rejections by organization
       const rejectionsByOrg = allRecords
-        .filter(record => record.status === 'rejected')
+        .filter(record => ['rejected','reprovado'].includes(getStatus(record.status)))
         .reduce((acc, record) => {
           const org = record.organization || 'Não informado';
           acc[org] = (acc[org] || 0) + 1;
@@ -268,16 +275,10 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <KPICards data={dashboardData.kpiData} loading={loading} />
-
-      {/* Trend Chart */}
-      <TrendChart data={dashboardData.trendData} loading={loading} />
 
       {/* Distribution Charts */}
       <DistributionCharts 
         topOrganizations={dashboardData.topOrganizations}
-        rejectionReasons={dashboardData.rejectionReasons}
         loading={loading}
       />
 

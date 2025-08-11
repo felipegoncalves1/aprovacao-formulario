@@ -32,6 +32,7 @@ export default function Admin() {
 
   // Check if user is admin master
   const isAdminMaster = user?.email && ADMIN_EMAILS.includes(user.email);
+  const displayName = (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.display_name ?? (user?.email ? user.email.split('@')[0] : 'Usuário'));
 
   useEffect(() => {
     if (!user) {
@@ -131,14 +132,13 @@ export default function Admin() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Painel Administrativo</h1>
+            <p className="text-sm font-medium">{displayName}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
             <p className="text-sm text-muted-foreground">
               Gerenciamento de Suprimentos Prematuros
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {user.email}
-            </span>
             {isAdminMaster && (
               <Button 
                 variant="outline" 
