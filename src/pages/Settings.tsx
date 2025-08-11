@@ -28,41 +28,58 @@ const ADMIN_EMAILS = ['felipe.carvalho@tecnoset.com.br'];
 export default function Settings() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-const { toast } = useToast();
-const [config, setConfig] = useState<ConfiguracaoData | null>(null);
-const [loading, setLoading] = useState(true);
-const [saving, setSaving] = useState<string | null>(null);
-const [searchParams, setSearchParams] = useSearchParams();
-const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') || 'integracoes');
+  const { toast } = useToast();
+  const [config, setConfig] = useState<ConfiguracaoData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') || 'integracoes');
+  // Role atual do usuário logado
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
 
-// Sincroniza a aba com o parâmetro ?tab da URL
-useEffect(() => {
-  const t = searchParams.get('tab') || 'integracoes';
-  setActiveTab(t);
-}, [searchParams]);
+  // Sincroniza a aba com o parâmetro ?tab da URL
+  useEffect(() => {
+    const t = searchParams.get('tab') || 'integracoes';
+    setActiveTab(t);
+  }, [searchParams]);
 
-// Users management state
-interface ProfileUser { id: string; first_name: string | null; last_name: string | null; email: string; is_active: boolean | null }
-const [usersList, setUsersList] = useState<ProfileUser[]>([]);
-const [rolesMap, setRolesMap] = useState<Record<string, string[]>>({});
+  // Users management state
+  interface ProfileUser { id: string; first_name: string | null; last_name: string | null; email: string; is_active: boolean | null }
+  const [usersList, setUsersList] = useState<ProfileUser[]>([]);
+  const [rolesMap, setRolesMap] = useState<Record<string, string[]>>({});
 
-  // Check if user is admin master
-  const isAdminMaster = user?.email && ADMIN_EMAILS.includes(user.email);
+  // Busca o papel do usuário logado
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (!user) return;
+      const { data, error } = await (supabase as any)
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      if (!error) {
+        setCurrentRole((data?.[0]?.role as string) || null);
+      }
+    };
+    fetchRole();
+  }, [user]);
 
+  // Gate de acesso à página de configurações
   useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
     }
-
-    if (!isAdminMaster) {
+    // Permite Admin Master (via e-mail) ou Supervisor acessar esta página
+    const ADMIN_EMAILS = ['felipe.carvalho@tecnoset.com.br'];
+    const isAdminMaster = user?.email && ADMIN_EMAILS.includes(user.email);
+    if (!isAdminMaster && currentRole !== 'supervisor') {
       navigate('/admin');
       return;
     }
-
     fetchConfig();
     fetchUsers();
-  }, [user, navigate, isAdminMaster]);
+  }, [user, currentRole]);
+
 
   const fetchConfig = async () => {
     try {
@@ -186,13 +203,13 @@ const updateConfig = async (field: string, value: string) => {
                   ⚙️ Configurações do Sistema
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Painel de configurações - Admin Master
+                  {currentRole === 'supervisor' ? 'Acesso parcial (sem Integrações e Parâmetros do Banco)' : 'Painel de configurações - Admin Master'}
                 </p>
               </div>
             </div>
             <Badge variant="outline" className="gap-2">
               <Users className="h-3 w-3" />
-              Admin Master
+              {currentRole === 'supervisor' ? 'Supervisor' : 'Admin Master'}
             </Badge>
           </div>
         </div>
@@ -204,202 +221,220 @@ const updateConfig = async (field: string, value: string) => {
 
           {/* Aba Integrações */}
           <TabsContent value="integracoes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações de Webhooks</CardTitle>
-                <CardDescription>
-                  Configure os endpoints para integração com sistemas externos
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6">
-                  {/* Webhook Aprovação */}
-                  <div className="space-y-2">
-                    <Label htmlFor="webhook_aprovacao">Webhook de Aprovação</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="webhook_aprovacao"
-                        placeholder="https://seu-sistema.com/api/aprovacao"
-                        value={config?.webhook_aprovacao || ''}
-                        onChange={(e) => setConfig(config ? {...config, webhook_aprovacao: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('webhook_aprovacao', config?.webhook_aprovacao || '')}
-                        disabled={saving === 'webhook_aprovacao'}
-                      >
-                        {saving === 'webhook_aprovacao' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
+            {currentRole === 'supervisor' ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Acesso negado</CardTitle>
+                  <CardDescription>Seu perfil não possui permissão para acessar Integrações.</CardDescription>
+                </CardHeader>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configurações de Webhooks</CardTitle>
+                  <CardDescription>
+                    Configure os endpoints para integração com sistemas externos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6">
+                    {/* Webhook Aprovação */}
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_aprovacao">Webhook de Aprovação</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="webhook_aprovacao"
+                          placeholder="https://seu-sistema.com/api/aprovacao"
+                          value={config?.webhook_aprovacao || ''}
+                          onChange={(e) => setConfig(config ? {...config, webhook_aprovacao: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('webhook_aprovacao', config?.webhook_aprovacao || '')}
+                          disabled={saving === 'webhook_aprovacao'}
+                        >
+                          {saving === 'webhook_aprovacao' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Webhook Reprovação */}
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_reprovacao">Webhook de Reprovação</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="webhook_reprovacao"
+                          placeholder="https://seu-sistema.com/api/reprovacao"
+                          value={config?.webhook_reprovacao || ''}
+                          onChange={(e) => setConfig(config ? {...config, webhook_reprovacao: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('webhook_reprovacao', config?.webhook_reprovacao || '')}
+                          disabled={saving === 'webhook_reprovacao'}
+                        >
+                          {saving === 'webhook_reprovacao' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Webhook Notificação Cliente */}
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_notificacao_cliente">Webhook de Notificação ao Cliente</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="webhook_notificacao_cliente"
+                          placeholder="https://seu-sistema.com/api/notificar-cliente"
+                          value={config?.webhook_notificacao_cliente || ''}
+                          onChange={(e) => setConfig(config ? {...config, webhook_notificacao_cliente: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('webhook_notificacao_cliente', config?.webhook_notificacao_cliente || '')}
+                          disabled={saving === 'webhook_notificacao_cliente'}
+                        >
+                          {saving === 'webhook_notificacao_cliente' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Webhook Callback */}
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_callback">Webhook de Callback</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="webhook_callback"
+                          placeholder="https://seu-sistema.com/api/callback"
+                          value={config?.webhook_callback || ''}
+                          onChange={(e) => setConfig(config ? {...config, webhook_callback: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('webhook_callback', config?.webhook_callback || '')}
+                          disabled={saving === 'webhook_callback'}
+                        >
+                          {saving === 'webhook_callback' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-
-                  <Separator />
-
-                  {/* Webhook Reprovação */}
-                  <div className="space-y-2">
-                    <Label htmlFor="webhook_reprovacao">Webhook de Reprovação</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="webhook_reprovacao"
-                        placeholder="https://seu-sistema.com/api/reprovacao"
-                        value={config?.webhook_reprovacao || ''}
-                        onChange={(e) => setConfig(config ? {...config, webhook_reprovacao: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('webhook_reprovacao', config?.webhook_reprovacao || '')}
-                        disabled={saving === 'webhook_reprovacao'}
-                      >
-                        {saving === 'webhook_reprovacao' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Webhook Notificação Cliente */}
-                  <div className="space-y-2">
-                    <Label htmlFor="webhook_notificacao_cliente">Webhook de Notificação ao Cliente</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="webhook_notificacao_cliente"
-                        placeholder="https://seu-sistema.com/api/notificar-cliente"
-                        value={config?.webhook_notificacao_cliente || ''}
-                        onChange={(e) => setConfig(config ? {...config, webhook_notificacao_cliente: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('webhook_notificacao_cliente', config?.webhook_notificacao_cliente || '')}
-                        disabled={saving === 'webhook_notificacao_cliente'}
-                      >
-                        {saving === 'webhook_notificacao_cliente' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Webhook Callback */}
-                  <div className="space-y-2">
-                    <Label htmlFor="webhook_callback">Webhook de Callback</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="webhook_callback"
-                        placeholder="https://seu-sistema.com/api/callback"
-                        value={config?.webhook_callback || ''}
-                        onChange={(e) => setConfig(config ? {...config, webhook_callback: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('webhook_callback', config?.webhook_callback || '')}
-                        disabled={saving === 'webhook_callback'}
-                      >
-                        {saving === 'webhook_callback' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Aba Parâmetros do Banco */}
           <TabsContent value="banco">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações do Banco de Dados</CardTitle>
-                <CardDescription>
-                  Gerenciar schema e ambiente do banco de dados
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6">
-                  {/* Schema Atual */}
-                  <div className="space-y-2">
-                    <Label htmlFor="schema_atual">Schema Atual</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="schema_atual"
-                        placeholder="public"
-                        value={config?.schema_atual || 'public'}
-                        onChange={(e) => setConfig(config ? {...config, schema_atual: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('schema_atual', config?.schema_atual || 'public')}
-                        disabled={saving === 'schema_atual'}
-                      >
-                        {saving === 'schema_atual' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Ambiente do Banco */}
-                  <div className="space-y-2">
-                    <Label htmlFor="ambiente_banco">Ambiente do Banco</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="ambiente_banco"
-                        placeholder="public"
-                        value={config?.ambiente_banco || 'public'}
-                        onChange={(e) => setConfig(config ? {...config, ambiente_banco: e.target.value} : null)}
-                      />
-                      <Button 
-                        size="sm"
-                        onClick={() => updateConfig('ambiente_banco', config?.ambiente_banco || 'public')}
-                        disabled={saving === 'ambiente_banco'}
-                      >
-                        {saving === 'ambiente_banco' ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Validação de Conexão */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Validação de Conexão</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Teste a conectividade com o banco de dados
-                        </p>
+            {currentRole === 'supervisor' ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Acesso negado</CardTitle>
+                  <CardDescription>Seu perfil não possui permissão para acessar Parâmetros do Banco.</CardDescription>
+                </CardHeader>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configurações do Banco de Dados</CardTitle>
+                  <CardDescription>
+                    Gerenciar schema e ambiente do banco de dados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6">
+                    {/* Schema Atual */}
+                    <div className="space-y-2">
+                      <Label htmlFor="schema_atual">Schema Atual</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="schema_atual"
+                          placeholder="public"
+                          value={config?.schema_atual || 'public'}
+                          onChange={(e) => setConfig(config ? {...config, schema_atual: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('schema_atual', config?.schema_atual || 'public')}
+                          disabled={saving === 'schema_atual'}
+                        >
+                          {saving === 'schema_atual' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <Button onClick={validateConnection} variant="outline" className="gap-2">
-                        <Check className="h-4 w-4" />
-                        Validar Conexão
-                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    {/* Ambiente do Banco */}
+                    <div className="space-y-2">
+                      <Label htmlFor="ambiente_banco">Ambiente do Banco</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="ambiente_banco"
+                          placeholder="public"
+                          value={config?.ambiente_banco || 'public'}
+                          onChange={(e) => setConfig(config ? {...config, ambiente_banco: e.target.value} : null)}
+                        />
+                        <Button 
+                          size="sm"
+                          onClick={() => updateConfig('ambiente_banco', config?.ambiente_banco || 'public')}
+                          disabled={saving === 'ambiente_banco'}
+                        >
+                          {saving === 'ambiente_banco' ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Validação de Conexão */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">Validação de Conexão</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Teste a conectividade com o banco de dados
+                          </p>
+                        </div>
+                        <Button onClick={validateConnection} variant="outline" className="gap-2">
+                          <Check className="h-4 w-4" />
+                          Validar Conexão
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Aba Gerenciamento de Usuários */}

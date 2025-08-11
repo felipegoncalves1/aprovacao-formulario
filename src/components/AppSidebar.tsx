@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Settings, FileText, LogOut, Database, Users, Webhook } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,10 +18,7 @@ export function AppSidebar() {
     state
   } = useSidebar();
   const collapsed = state === 'collapsed';
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -33,15 +30,26 @@ export function AppSidebar() {
     return currentPath.startsWith(path);
   };
   const isSettingsTabActive = (tab: string) => currentPath.startsWith('/admin/settings') && new URLSearchParams(currentSearch).get('tab') === tab;
-  const getNavCls = ({
-    isActive
-  }: {
-    isActive: boolean;
-  }) => isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/50';
+  const getNavCls = ({ isActive }: { isActive: boolean; }) => isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/50';
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
+  // Papel do usuário atual
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!user) return;
+      const { data, error } = await (await import('@/integrations/supabase/client')).supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (mounted && !error) setRole((data as any)?.role || null);
+    })();
+    return () => { mounted = false; };
+  }, [user]);
   return <Sidebar className={collapsed ? 'w-14' : 'w-60'} collapsible="icon">
       <SidebarContent>
         {/* User Info Section */}
@@ -92,22 +100,26 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('integracoes')}>
-                      <NavLink to={'/admin/settings?tab=integracoes'}>
-                        <Webhook className="mr-2 h-4 w-4" />
-                        <span>Integrações</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isSettingsTabActive('banco')}>
-                      <NavLink to={'/admin/settings?tab=banco'}>
-                        <Database className="mr-2 h-4 w-4" />
-                        <span>Parâmetros do Banco</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
+                  {role !== 'supervisor' && (
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={isSettingsTabActive('integracoes')}>
+                        <NavLink to={'/admin/settings?tab=integracoes'}>
+                          <Webhook className="mr-2 h-4 w-4" />
+                          <span>Integrações</span>
+                        </NavLink>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  )}
+                  {role !== 'supervisor' && (
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={isSettingsTabActive('banco')}>
+                        <NavLink to={'/admin/settings?tab=banco'}>
+                          <Database className="mr-2 h-4 w-4" />
+                          <span>Parâmetros do Banco</span>
+                        </NavLink>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  )}
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild isActive={isSettingsTabActive('usuarios')}>
                       <NavLink to={'/admin/settings?tab=usuarios'}>

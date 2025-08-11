@@ -177,7 +177,7 @@ export default function JustificationsList() {
   };
 
   const isDownloadDisabled = (record: PrematureJustifyRecord) => {
-    return !record.download || record.justify === "Sem Evidência";
+    return record.download === "Sem Evidencia";
   };
 
   const callWebhook = async (webhookType: 'aprovacao' | 'reprovacao', record: PrematureJustifyRecord, motivoReprovacao?: string) => {
