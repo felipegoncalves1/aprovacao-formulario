@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Eye, Download, Search, Check, X } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 interface PrematureJustifyRecord {
   id: string;
@@ -48,6 +49,8 @@ export default function JustificationsList() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pendente' | 'aprovado' | 'reprovado'>('all');
   const [orgFilter, setOrgFilter] = useState<string>('all');
   const [tipoEnvioFilter, setTipoEnvioFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const pendingOptions = useMemo(() => {
     const prs = records.filter(r => (r.status || '').toLowerCase() === 'pendente');
@@ -67,6 +70,11 @@ export default function JustificationsList() {
       fetchRecords();
     }
   }, [user]);
+
+  // Reset página ao mudar filtros/abas/busca
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm, statusFilter, orgFilter, tipoEnvioFilter]);
 
   const fetchRecords = async () => {
     try {
@@ -105,8 +113,12 @@ export default function JustificationsList() {
       if (tipoEnvioFilter !== 'all') {
         list = list.filter(r => (r.tipoenvio || '') === tipoEnvioFilter);
       }
-    } else if (statusFilter !== 'all') {
-      list = list.filter(r => (r.status || '').toLowerCase() === statusFilter);
+    } else {
+      // "Todos" deve excluir pendentes
+      list = list.filter(r => (r.status || '').toLowerCase() !== 'pendente');
+      if (statusFilter !== 'all') {
+        list = list.filter(r => (r.status || '').toLowerCase() === statusFilter);
+      }
     }
 
     if (searchTerm.trim()) {
@@ -133,15 +145,23 @@ export default function JustificationsList() {
       });
     }
 
-    // Ordena por data mais recente
+    // Ordenação: Pendentes ascendente (mais antigo primeiro), Todos descendente
     list.sort((a, b) => {
-      const da = a.lastdate ? new Date(a.lastdate).getTime() : 0;
-      const db = b.lastdate ? new Date(b.lastdate).getTime() : 0;
-      return db - da;
+      const da = getRecordDate(a);
+      const db = getRecordDate(b);
+      return activeTab === 'pendentes' ? da - db : db - da;
     });
 
     setFilteredRecords(list);
   }, [records, searchTerm, statusFilter, activeTab, orgFilter, tipoEnvioFilter]);
+
+  // Paginação
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(filteredRecords.length / itemsPerPage)), [filteredRecords.length]);
+  const currentPageSafe = Math.min(currentPage, pageCount);
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPageSafe - 1) * itemsPerPage;
+    return filteredRecords.slice(start, start + itemsPerPage);
+  }, [filteredRecords, currentPageSafe]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -167,6 +187,13 @@ export default function JustificationsList() {
     const h = pad(dObj.getHours());
     const mi = pad(dObj.getMinutes());
     return `${d}/${mo}/${y} ${h}:${mi}`;
+  };
+
+  // Data usada para ordenação (fallback: created_at/openedAt)
+  const getRecordDate = (record: PrematureJustifyRecord) => {
+    const anyRec = record as any;
+    const dateStr: string | null = record.lastdate || anyRec.created_at || anyRec.createdAt || anyRec.openedAt || anyRec.opened_at || null;
+    return dateStr ? new Date(dateStr).getTime() : 0;
   };
   const handleDownload = (downloadUrl: string) => {
     window.open(downloadUrl, '_blank');
@@ -437,7 +464,7 @@ export default function JustificationsList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRecords.map((record) => (
+                  {paginatedRecords.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>
                         <Badge variant="outline" className="font-mono">
@@ -605,6 +632,45 @@ export default function JustificationsList() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Pagination Footer */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPageSafe} de {pageCount}
+                </div>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        className={currentPageSafe === 1 ? "pointer-events-none opacity-50" : undefined}
+                        onClick={(e) => { e.preventDefault(); if (currentPageSafe > 1) setCurrentPage(currentPageSafe - 1); }}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: pageCount }).map((_, idx) => {
+                      const page = idx + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            isActive={page === currentPageSafe}
+                            onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        className={currentPageSafe === pageCount ? "pointer-events-none opacity-50" : undefined}
+                        onClick={(e) => { e.preventDefault(); if (currentPageSafe < pageCount) setCurrentPage(currentPageSafe + 1); }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             </div>
           )}
         </CardContent>
