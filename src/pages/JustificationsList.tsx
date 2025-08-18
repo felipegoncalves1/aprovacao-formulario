@@ -242,6 +242,7 @@ export default function JustificationsList() {
         // Campos do formulário solicitados
         justify: record.justify,
         ultima_leitura_tonner: record.lastlevel, // nível do toner na última leitura
+        email_justificou: record.email_justificou,
         // Datas/Status da análise
         status: webhookType === 'aprovacao' ? 'aprovado' : 'reprovado',
         analisado_por: user?.email || null,
