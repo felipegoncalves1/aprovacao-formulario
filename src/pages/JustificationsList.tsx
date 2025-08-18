@@ -32,6 +32,7 @@ interface PrematureJustifyRecord {
   analisado_por: string | null;
   dataanalise: string | null;
   motivo_reprovacao: string | null;
+  email_justificou: string | null;
 }
 
 export default function JustificationsList() {
@@ -460,6 +461,7 @@ export default function JustificationsList() {
                     <TableHead>Tipo Envio</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Organização</TableHead>
+                    <TableHead>Email do Solicitante</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -499,6 +501,9 @@ export default function JustificationsList() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {record.email_justificou || 'N/A'}
+                      </TableCell>
+                      <TableCell className="space-y-1">
                         <div className="flex gap-2">
                           <Dialog>
                             <DialogTrigger asChild>
@@ -559,11 +564,15 @@ export default function JustificationsList() {
                                     <label className="text-sm font-medium">Analisado por</label>
                                     <p className="text-sm text-muted-foreground">{record.analisado_por || 'N/A'}</p>
                                   </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Data de Análise</label>
-                                    <p className="text-sm text-muted-foreground">{formatDate(record.dataanalise)}</p>
-                                  </div>
-                                </div>
+                                   <div>
+                                     <label className="text-sm font-medium">Data de Análise</label>
+                                     <p className="text-sm text-muted-foreground">{formatDate(record.dataanalise)}</p>
+                                   </div>
+                                   <div>
+                                     <label className="text-sm font-medium">Email do Solicitante</label>
+                                     <p className="text-sm text-muted-foreground">{record.email_justificou || 'N/A'}</p>
+                                   </div>
+                                 </div>
                                 <div>
                                   <label className="text-sm font-medium">Justificativa</label>
                                   <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
